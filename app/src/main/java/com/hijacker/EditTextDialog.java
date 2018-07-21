@@ -22,27 +22,41 @@ import android.app.DialogFragment;
 import android.app.FragmentManager;
 import android.content.DialogInterface;
 import android.os.Bundle;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AlertDialog;
+import android.view.KeyEvent;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
+import android.widget.TextView;
 
 import static com.hijacker.MainActivity.background;
 
 public class EditTextDialog extends DialogFragment {
-    String title = null, hint = null, result = null;
-    boolean allowEmpty = false;
+    String title = null, hint = null, defaultText = null, result = null;
+    private boolean allowEmpty = false;
     View dialogView;
-    EditText field;
-    Runnable runnable = null;
+    EditText fieldView;
+    private Runnable runnable = null;
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         dialogView = getActivity().getLayoutInflater().inflate(R.layout.edit_text_dialog, null);
-        field = (EditText)dialogView.findViewById(R.id.edit_text);
+
+        fieldView = dialogView.findViewById(R.id.edit_text);
+        fieldView.setOnEditorActionListener(new TextView.OnEditorActionListener(){
+            @Override
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event){
+                if(actionId == EditorInfo.IME_ACTION_DONE){
+                    onOK();
+                    return true;
+                }
+                return false;
+            }
+        });
 
         if(title!=null) builder.setTitle(title);
-        if(hint!=null) field.setHint(hint);
+        if(hint!=null) fieldView.setHint(hint);
+        if(defaultText!=null) fieldView.setText(defaultText);
 
         builder.setView(dialogView);
         builder.setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
@@ -66,16 +80,21 @@ public class EditTextDialog extends DialogFragment {
             d.getButton(Dialog.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener(){
                 @Override
                 public void onClick(View v){
-                    result = field.getText().toString();
-                    if(result.equals("") && !allowEmpty){
-                        Snackbar.make(dialogView, getString(R.string.field_empty), Snackbar.LENGTH_SHORT).show();
-                        return;
-                    }
-                    if(runnable!=null) runnable.run();
-                    dismiss();
+                    onOK();
                 }
             });
         }
+    }
+    void onOK(){
+        fieldView.setError(null);
+        result = fieldView.getText().toString();
+        if(result.equals("") && !allowEmpty){
+            fieldView.setError(getString(R.string.field_required));
+            fieldView.requestFocus();
+            return;
+        }
+        if(runnable!=null) runnable.run();
+        dismissAllowingStateLoss();
     }
     void setRunnable(Runnable runnable){
         this.runnable = runnable;
@@ -89,4 +108,5 @@ public class EditTextDialog extends DialogFragment {
     void setAllowEmpty(boolean allowEmpty){
         this.allowEmpty = allowEmpty;
     }
+    void setDefaultText(String text){ this.defaultText = text; }
 }

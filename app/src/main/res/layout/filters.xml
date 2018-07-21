@@ -4,8 +4,9 @@
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:padding="10dp"
-    android:id="@+id/filterll1">
+    android:focusable="true"
+    android:focusableInTouchMode="true"
+    android:padding="10dp">
 
     <CheckBox
         android:text="@string/show_ap"
@@ -33,7 +34,6 @@
         android:text="@string/channels"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:id="@+id/textView6"
         android:textColor="@android:color/white"
         android:textSize="18sp"
         android:padding="5dp" />
@@ -245,24 +245,36 @@
             android:layout_height="wrap_content"
             android:textColor="@android:color/white"
             android:textSize="18sp"
-            android:padding="5dp"
-            />
+            android:padding="5dp"/>
 
         <CheckBox
             android:text="@string/reverse_sort"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:id="@+id/sort_reverse"
-            />
+            android:id="@+id/sort_reverse"/>
 
         <Button
             style="?android:attr/buttonBarButtonStyle"
             android:text="@string/sort_nosort"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:id="@+id/select_sort"
-            />
+            android:id="@+id/select_sort"/>
 
     </LinearLayout>
+
+    <android.support.design.widget.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <EditText
+            android:id="@+id/manuf_filter_et"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/manuf_filter"
+            android:imeOptions="actionDone"
+            android:inputType="text|textFilter"
+            android:maxLines="1"/>
+
+    </android.support.design.widget.TextInputLayout>
 
 </LinearLayout>

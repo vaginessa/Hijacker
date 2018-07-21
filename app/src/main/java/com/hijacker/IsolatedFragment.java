@@ -19,32 +19,24 @@ package com.hijacker;
 
 import android.app.Fragment;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ListView;
-import android.widget.PopupMenu;
 import android.widget.TextView;
 
 import static com.hijacker.AP.WEP;
 import static com.hijacker.AP.WPA;
 import static com.hijacker.AP.WPA2;
 import static com.hijacker.MainActivity.FRAGMENT_AIRODUMP;
-import static com.hijacker.MainActivity.aireplay_dir;
-import static com.hijacker.MainActivity.copy;
 import static com.hijacker.MainActivity.currentFragment;
-import static com.hijacker.MainActivity.debug;
-import static com.hijacker.MainActivity.iface;
 import static com.hijacker.MainActivity.isolate;
 import static com.hijacker.MainActivity.mFragmentManager;
 import static com.hijacker.MainActivity.menu;
-import static com.hijacker.MainActivity.prefix;
 import static com.hijacker.MainActivity.refreshDrawer;
+import static com.hijacker.MainActivity.runInHandler;
 import static com.hijacker.MainActivity.wpa_thread;
 
 public class IsolatedFragment extends Fragment{
@@ -66,71 +58,34 @@ public class IsolatedFragment extends Fragment{
                 try{
                     while(cont){
                         Thread.sleep(1000);
-                        refresh.obtainMessage().sendToTarget();
+                        runInHandler(refreshRunnable);
                     }
                 }catch(InterruptedException ignored){}
             }
         };
         thread = new Thread(runnable);
 
-        essid = (TextView)fragmentView.findViewById(R.id.essid);
-        manuf = (TextView)fragmentView.findViewById(R.id.manuf);
-        mac = (TextView)fragmentView.findViewById(R.id.mac);
-        sec1 = (TextView)fragmentView.findViewById(R.id.sec1);
-        numbers = (TextView)fragmentView.findViewById(R.id.numbers);
-        sec2 = (TextView)fragmentView.findViewById(R.id.sec2);
+        essid = fragmentView.findViewById(R.id.essid);
+        manuf = fragmentView.findViewById(R.id.manuf);
+        mac = fragmentView.findViewById(R.id.mac);
+        sec1 = fragmentView.findViewById(R.id.sec1);
+        numbers = fragmentView.findViewById(R.id.numbers);
+        sec2 = fragmentView.findViewById(R.id.sec2);
 
-        ListView listview = (ListView)fragmentView.findViewById(R.id.listview);
+        ListView listview = fragmentView.findViewById(R.id.listview);
         listview.setAdapter(MainActivity.adapter);
         listview.setOnItemClickListener(new AdapterView.OnItemClickListener(){
             @Override
             public void onItemClick(AdapterView<?> adapterView, final View v, int i, long l){
-                final Tile clicked = Tile.tiles.get(i);
-
-                //ST
-                PopupMenu popup = new PopupMenu(getActivity(), v);
-                popup.getMenuInflater().inflate(R.menu.popup_menu, popup.getMenu());
-
-                popup.getMenu().add(0, 0, 0, "Info");
-                popup.getMenu().add(0, 1, 1, "Copy MAC");
-                if(clicked.st.bssid!=null){
-                    popup.getMenu().add(0, 2, 2, "Disconnect");
-                    popup.getMenu().add(0, 3, 3, "Copy disconnect command");
-                }
-
-                popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-                    public boolean onMenuItemClick(android.view.MenuItem item) {
-                        if(debug) Log.d("HIJACKER/MyListFragment", "Clicked " + item.getItemId() + " for st");
-                        switch(item.getItemId()) {
-                            case 0:
-                                //Info
-                                clicked.st.showInfo(mFragmentManager);
-                                break;
-                            case 1:
-                                //copy to clipboard
-                                copy(clicked.st.mac, v);
-                                break;
-                            case 2:
-                                //Disconnect this
-                                clicked.st.disconnect();
-                                break;
-                            case 3:
-                                //copy disconnect command to clipboard
-                                String str = prefix + " " + aireplay_dir + " --ignore-negative-one --deauth 0 -a " + clicked.st.bssid + " -c " + clicked.st.mac + " " + iface;
-                                copy(str, v);
-                                break;
-                        }
-                        return true;
-                    }
-                });
-                popup.show();
+                Tile.tiles.get(i).device.getPopupMenu((MainActivity)getActivity(), v).show();
             }
         });
 
         return fragmentView;
     }
-    public Handler refresh = new Handler(){
-        public void handleMessage(Message msg){
+    Runnable refreshRunnable = new Runnable(){
+        @Override
+        public void run(){
             if(cont && is_ap !=null){
                 essid.setText(is_ap.essid);
                 manuf.setText(is_ap.manuf);
@@ -151,7 +106,7 @@ public class IsolatedFragment extends Fragment{
         ((Button)fragmentView.findViewById(R.id.crack)).setText(wpa_thread.isAlive() ? R.string.stop : R.string.crack);
         fragmentView.findViewById(R.id.crack).setEnabled(is_ap.sec==WPA || is_ap.sec==WPA2 || is_ap.sec==WEP);
         ((Button)fragmentView.findViewById(R.id.dos)).setText(MDKFragment.ados ? R.string.stop : R.string.dos);
-        refresh.obtainMessage().sendToTarget();
+        runInHandler(refreshRunnable);
         menu.findItem(R.id.reset).setVisible(false);
     }
     @Override

@@ -1,5 +1,5 @@
 #include <jni.h>
-#include <string>
+#include <string.h>
 #include <stdlib.h>
 #include <android/log.h>
 
@@ -57,8 +57,11 @@ extern "C" jint Java_com_hijacker_Airodump_main(JNIEnv* env, jobject obj, jstrin
             }
         }
         if(buffer[22]==':'){
+            //logd("0         1         2         3         4         5         6");
+            //logd("0123456789012345678901234567890123456789012345678901234567890");
+            //logd(buffer);
             //st
-            char st_mac[18], bssid[18], pwr_c[5], lost_c[7], frames_c[10], probes[100];
+            char st_mac[18], bssid[18], pwr_c[6], lost_c[7], frames_c[10], probes[100];
             int pwr, lost, frames;
 
             strncpy(st_mac, buffer+20, 17);
@@ -68,7 +71,7 @@ extern "C" jint Java_com_hijacker_Airodump_main(JNIEnv* env, jobject obj, jstrin
             else strncpy(bssid, buffer+1, 17);
             bssid[17]='\0';
 
-            strncpy(pwr_c, buffer+37, 5);
+            strncpy(pwr_c, buffer+37, 6);
             pwr_c[5]='\0';
             pwr = atoi(pwr_c);
 
@@ -81,7 +84,7 @@ extern "C" jint Java_com_hijacker_Airodump_main(JNIEnv* env, jobject obj, jstrin
             frames = atoi(frames_c);
 
             strncpy(probes, buffer+69, 100);
-            probes[100] = '\0';
+            probes[99] = '\0';
 
             jstring s1 = env->NewStringUTF(st_mac);
             jstring s2 = env->NewStringUTF(bssid);

@@ -23,10 +23,12 @@ import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Environment;
+import android.support.annotation.NonNull;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
 import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -35,137 +37,141 @@ import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Date;
+
+import static com.hijacker.MainActivity.createReport;
+import static com.hijacker.MainActivity.deviceModel;
+import static com.hijacker.MainActivity.versionCode;
+import static com.hijacker.MainActivity.versionName;
 
 public class SendLogActivity extends AppCompatActivity{
     static String busybox;
-    String filename, stackTrace;
+    View rootView;
+    View sendEmailBtn, progressBar;
+    TextView console;
+
+    File report;
+    String stackTrace;
     Process shell;
     PrintWriter shell_in;
     BufferedReader shell_out;
     @Override
     protected void onCreate(Bundle savedInstanceState){
         super.onCreate(savedInstanceState);
-        requestWindowFeature(Window.FEATURE_NO_TITLE); // make a dialog without a titlebar
-        setFinishOnTouchOutside(false); // prevent users from dismissing the dialog by tapping outside
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
+        setFinishOnTouchOutside(false);
         setContentView(R.layout.activity_send_log);
 
-        busybox = getFilesDir().getAbsolutePath() + "/busybox";
+        rootView = findViewById(R.id.activity_send_log);
+        progressBar = findViewById(R.id.reportProgressBar);
+        console = findViewById(R.id.console);
+        sendEmailBtn = findViewById(R.id.sendEmailBtn);
+
+        busybox = getFilesDir().getAbsolutePath() + "/bin/busybox";
         stackTrace = getIntent().getStringExtra("exception");
         Log.e("HIJACKER/SendLog", stackTrace);
 
+        //Load device info
+        PackageManager manager = getPackageManager();
+        PackageInfo info;
         try{
-            shell = Runtime.getRuntime().exec("su");
-        }catch(IOException e){
-            Log.e("HIJACKER/onCreate", "Caught Exception in shell start: " + e.toString());
-            Toast.makeText(this, "Couldn't start su shell to stop any remaining processes", Toast.LENGTH_LONG).show();
-            return;
+            info = manager.getPackageInfo(getPackageName(), 0);
+            versionName = info.versionName.replace(" ", "_");
+            versionCode = info.versionCode;
+        }catch(PackageManager.NameNotFoundException e){
+            Log.e("HIJACKER/SendLog", e.toString());
         }
-        shell_in = new PrintWriter(shell.getOutputStream());
-        shell_out = new BufferedReader(new InputStreamReader(shell.getInputStream()));
+        deviceModel = Build.MODEL;
+        if(!deviceModel.startsWith(Build.MANUFACTURER)) deviceModel = Build.MANUFACTURER + " " + deviceModel;
+        deviceModel = deviceModel.replace(" ", "_");
 
-        stopAll();
-
-        if(ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)==PackageManager.PERMISSION_DENIED){
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 0);
-        }
-        if(ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)!=PackageManager.PERMISSION_DENIED){
-            filename = extractLogToFile();
-            if(filename==null) Log.d("HIJACKER/SendLog", "filename is null");
-            else{
-                File log = new File(filename);
-                try{
-                    BufferedReader br = new BufferedReader(new FileReader(log));
-                    String buffer;
-                    TextView console = (TextView)findViewById(R.id.console);
-                    console.setMovementMethod(ScrollingMovementMethod.getInstance());
-                    int i=0;
-                    while((buffer = br.readLine())!=null && i<400){
-                        console.append(buffer + '\n');
-                        i++;
-                    }
-                    if(i==400) console.append("...more logcat not displayed here");
-                }catch(IOException ignored){}
-            }
-        }else Log.e("HIJACKER/SendLog", "WRITE_EXTERNAL_STORAGE permission denied");
+        new SetupTask().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
     }
-    private void sendLogFile(String fullName){
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String permissions[], @NonNull int[] grantResults){
+        boolean writeGranted = grantResults.length>0 && grantResults[0]==PackageManager.PERMISSION_GRANTED;
+        if(writeGranted){
+            new ReportTask().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        }else{
+            progressBar.setVisibility(View.GONE);
+            console.setText(getString(R.string.cant_create_report));
+        }
+    }
+    private class SetupTask extends AsyncTask<Void, String, Boolean>{
+        @Override
+        protected Boolean doInBackground(Void... params){
+            //Start su shell
+            try{
+                shell = Runtime.getRuntime().exec("su");
+            }catch(IOException e){
+                Log.e("HIJACKER/onCreate", "Caught Exception in shell start: " + e.toString());
+                Snackbar.make(rootView, "Couldn't start su shell to stop any remaining processes", Snackbar.LENGTH_LONG).show();
+            }
+            shell_in = new PrintWriter(shell.getOutputStream());
+            shell_out = new BufferedReader(new InputStreamReader(shell.getInputStream()));
+
+            stopAll();
+
+            ActivityCompat.requestPermissions(SendLogActivity.this, new String[]{
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                    Manifest.permission.INTERNET,
+                    Manifest.permission.ACCESS_WIFI_STATE,
+                    Manifest.permission.ACCESS_NETWORK_STATE
+            }, 0);
+
+            return true;
+        }
+    }
+    private class ReportTask extends AsyncTask<Void, String, Boolean>{
+        String bugReport = "";
+        @Override
+        protected Boolean doInBackground(Void... params){
+            report = new File(Environment.getExternalStorageDirectory() + "/report.txt");
+            boolean result = createReport(report, getFilesDir().getAbsolutePath(), stackTrace, shell);
+            if(result){
+                try{
+                    BufferedReader br = new BufferedReader(new FileReader(report));
+                    String buffer;
+                    while((buffer = br.readLine())!=null){
+                        bugReport += buffer + '\n';
+                    }
+                }catch(IOException ignored){
+                    return false;
+                }
+            }
+            return result;
+        }
+        @Override
+        protected void onPostExecute(final Boolean success){
+            progressBar.setVisibility(View.GONE);
+
+            if(success){
+                //Show bug report
+                console.setMovementMethod(ScrollingMovementMethod.getInstance());
+                console.setText(bugReport);
+
+                sendEmailBtn.setEnabled(true);
+            }else{
+                console.setText(getString(R.string.report_not_created));
+            }
+        }
+    }
+    public void onUseEmail(View v){
         Intent intent = new Intent (Intent.ACTION_SEND);
         intent.setType("plain/text");
-        intent.putExtra(Intent.EXTRA_EMAIL, new String[] {"kiriakopoulos44@gmail.com"});
+        intent.putExtra(Intent.EXTRA_EMAIL, new String[] {"droid.hijacker@gmail.com"});
         intent.putExtra(Intent.EXTRA_SUBJECT, "Hijacker bug report");
-        Uri attachment = FileProvider.getUriForFile(this, BuildConfig.APPLICATION_ID + ".provider", new File(fullName));
+        Uri attachment = FileProvider.getUriForFile(this, BuildConfig.APPLICATION_ID + ".provider", report);
         intent.putExtra(Intent.EXTRA_STREAM, attachment);
-        intent.putExtra(Intent.EXTRA_TEXT, "Log file attached.\n\nAdd additional details here, like what exactly you were doing when the crash occurred."); // do this so some email clients don't complain about empty body.
+        intent.putExtra(Intent.EXTRA_TEXT, getString(R.string.prompt_additional_details));
         startActivity(intent);
-    }
-    private String extractLogToFile(){
-        PackageManager manager = this.getPackageManager();
-        PackageInfo info = null;
-        try{
-            info = manager.getPackageInfo (this.getPackageName(), 0);
-        }catch(PackageManager.NameNotFoundException ignored){}
-        String model = Build.MODEL;
-        if (!model.startsWith(Build.MANUFACTURER)) model = Build.MANUFACTURER + " " + model;
-
-        // Make file name - file must be saved to external storage or it wont be readable by the email app.
-        String fullName = Environment.getExternalStorageDirectory() + "/report.txt";
-
-        // Extract to file.
-        File file = new File (fullName);
-        FileWriter writer = null;
-        try{
-            writer = new FileWriter(file, true);
-            writer.write("\n--------------------------------------------------------------------------------\n");
-            writer.write("Hijacker bug report - " + new Date().toString() + "\n\n");
-            writer.write("Android version: " +  Build.VERSION.SDK_INT + '\n');
-            writer.write("Device: " + model + '\n');
-            writer.write("App version: " + (info == null ? "(null)" : info.versionName) + '\n');
-            writer.write("App data path: " + getFilesDir().getAbsolutePath() + '\n');
-            writer.write("\nStack trace:\n" + stackTrace + '\n');
-
-            String cmd = "echo pref_file--------------------------------------; su -c cat /data/data/com.hijacker/shared_prefs/com.hijacker_preferences.xml;";
-            cmd += " echo app directory----------------------------------; " + busybox + " ls -lR " + getFilesDir().getAbsolutePath() + ';';
-            cmd += " echo fw_bcmdhd--------------------------------------; su -c strings /vendor/firmware/fw_bcmdhd.bin | grep \"FWID:\";";
-            cmd += " echo ps---------------------------------------------; su -c ps | " + busybox + " grep -e air -e mdk -e reaver;";
-            cmd += " echo busybox----------------------------------------; " + busybox + ";";
-            cmd += " echo logcat-----------------------------------------; logcat -d -v time | " + busybox + " grep HIJACKER;";
-            cmd += " echo ENDOFLOG\n";
-            Log.d("HIJACKER/SendLog", cmd);
-            shell_in.print(cmd);                //Runtime.getRuntime().exec(cmd) just echos the cmd...
-            shell_in.flush();
-            String buffer = shell_out.readLine();
-            while(!buffer.equals("ENDOFLOG")){
-                writer.write(buffer + '\n');
-                buffer = shell_out.readLine();
-            }
-
-            writer.close();
-        }catch(IOException e){
-            if (writer != null)
-                try {
-                    writer.close();
-                }catch(IOException ignored) {}
-            return null;
-        }
-
-        return fullName;
-    }
-    public void onSend(View v){
-        if(filename==null){
-            Log.d("HIJACKER/SendLog", "filename is null");
-            Toast.makeText(this, "Report was not created", Toast.LENGTH_LONG).show();
-        }else sendLogFile(filename);
     }
     public void onRestart(View v){
         Intent intent = new Intent(this, MainActivity.class);

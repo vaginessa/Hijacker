@@ -23,7 +23,7 @@ package com.hijacker;
     its output is reset and it's saved to be used later, when a new one is needed
     without starting a new one.
 
-    To create a new one just do Shell shell = new Shell();
+    To get a Shell call getFreeShell();
     run commands with shell.run(command);
     and when you're done with it, call shell.done() for it to be registered as free
     so it can be used later.
@@ -44,9 +44,9 @@ class Shell{
     private Process shell;
     private PrintWriter shell_in;
     private BufferedReader shell_out;
-    private static List<Shell> free = new ArrayList<>();
+    private static final List<Shell> free = new ArrayList<>();
     private static int total=0;
-    private static boolean wait = false;        //To handle simultaneous calls to getFreeShell();
+    private boolean valid = true;
     Shell(){
         total++;
         try{
@@ -62,24 +62,32 @@ class Shell{
         if(free.size()>5) exitAll();
     }
     BufferedReader getShell_out(){ return this.shell_out; }
+    Process getShell(){ return this.shell; }
     void run(String cmd){
+        if(!valid){
+            throw new IllegalStateException("Shell has been registered as free");
+        }
         this.shell_in.print(cmd + '\n');
         this.shell_in.flush();
     }
     void done(){
+        if(!valid){
+            throw new IllegalStateException("Shell has already been registered as free");
+        }
         String term_str = "ENDOFCLEAR" + System.currentTimeMillis();    //Use unique string
         run("echo; echo " + term_str);
         MainActivity.getLastLine(shell_out, term_str);      //This will read up to the last line and stop, effectively clearing shell_out
-        if(!free.contains(this)) free.add(this);
+        synchronized(free){
+            if(!free.contains(this)) free.add(this);
+            valid = false;
+        }
     }
-    static Shell getFreeShell(){
-        while(wait){}
+    static synchronized Shell getFreeShell(){
         if(free.isEmpty()) return new Shell();
         else{
-            wait = true;
             Shell temp = free.get(0);
             free.remove(0);
-            wait = false;
+            temp.valid = true;
             return temp;
         }
     }
@@ -91,6 +99,7 @@ class Shell{
     static void exitAll(){
         total -= free.size();
         for(int i=0;i<free.size();i++){
+            free.get(i).valid = true;
             free.get(i).run("exit");
             free.get(i).shell.destroy();
         }

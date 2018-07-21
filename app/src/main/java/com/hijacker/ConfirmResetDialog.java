@@ -32,14 +32,14 @@ public class ConfirmResetDialog extends DialogFragment {
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-        builder.setTitle(R.string.reset_dialog_title);
+        builder.setMessage(R.string.reset_dialog_title);
         builder.setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
                 pref_edit.putString("iface", getString(R.string.iface));
                 pref_edit.putString("prefix", getString(R.string.prefix));
-                pref_edit.putString("cap_dir", getString(R.string.cap_dir));
                 pref_edit.putString("enable_monMode", getString(R.string.enable_monMode));
                 pref_edit.putString("disable_monMode", getString(R.string.disable_monMode));
+                pref_edit.putBoolean("enable_on_airodump", Boolean.parseBoolean(getString(R.string.enable_on_airodump)));
                 pref_edit.putString("deauthWait", getString(R.string.deauthWait));
                 pref_edit.putBoolean("show_notif", Boolean.parseBoolean(getString(R.string.show_notif)));
                 pref_edit.putBoolean("show_details", Boolean.parseBoolean(getString(R.string.show_details)));
@@ -53,6 +53,7 @@ public class ConfirmResetDialog extends DialogFragment {
                 pref_edit.putBoolean("cont_on_fail", Boolean.parseBoolean(getString(R.string.cont_on_fail)));
                 pref_edit.putBoolean("watchdog", Boolean.parseBoolean(getString(R.string.watchdog)));
                 pref_edit.putBoolean("target_deauth", Boolean.parseBoolean(getString(R.string.target_deauth)));
+                pref_edit.putBoolean("update_on_startup", Boolean.parseBoolean(getString(R.string.auto_update)));
                 pref_edit.commit();
                 load();
                 dismissAllowingStateLoss();

@@ -27,12 +27,12 @@ import android.support.v7.app.AlertDialog;
 import static com.hijacker.MainActivity.aircrack_dir;
 import static com.hijacker.MainActivity.aireplay_dir;
 import static com.hijacker.MainActivity.airodump_dir;
-import static com.hijacker.MainActivity.cap_dir;
+import static com.hijacker.MainActivity.cap_path;
 import static com.hijacker.MainActivity.chroot_dir;
 import static com.hijacker.MainActivity.copy;
 import static com.hijacker.MainActivity.iface;
-import static com.hijacker.MainActivity.mdk3_dir;
 import static com.hijacker.MainActivity.background;
+import static com.hijacker.MainActivity.mdk3bf_dir;
 import static com.hijacker.MainActivity.prefix;
 import static com.hijacker.MainActivity.reaver_dir;
 import static com.hijacker.ReaverFragment.get_chroot_env;
@@ -52,16 +52,16 @@ public class CopySampleDialog extends DialogFragment {
             public void onClick(DialogInterface dialog, int which) {
                 switch(which){
                     case 0:
-                        copy(aircrack_dir + " " + cap_dir + "/wpa.cap-01.cap", getView());
+                        copy(aircrack_dir + " " + cap_path + "/wpa.cap-01.cap", getView());
                         break;
                     case 1:
-                        copy(prefix + " " + airodump_dir + " --update 1 --channel 2 --bssid 00:11:22:33:44:55 " + iface, getView());
+                        copy(prefix + " " + airodump_dir + " " + iface, getView());
                         break;
                     case 2:
                         copy(prefix + " " + aireplay_dir + " --ignore-negative-one --deauth 0 -a 00:11:22:33:44:55 -c 01:23:45:67:89:0a " + iface, getView());
                         break;
                     case 3:
-                        copy(prefix + " " + mdk3_dir + " " + iface + " b -m", getView());
+                        copy(prefix + " " + mdk3bf_dir + " " + iface + " b -m", getView());
                         break;
                     case 4:
                         copy(prefix + " " + reaver_dir + " -i " + iface + " -vv -b 00:11:22:33:44:55 --channel 6 -L -E -S", getView());

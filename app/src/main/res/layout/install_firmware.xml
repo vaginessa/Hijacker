@@ -1,101 +1,92 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
     android:layout_width="match_parent"
-    android:layout_height="match_parent" >
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:focusable="true"
+    android:focusableInTouchMode="true"
+    android:paddingTop="10dp">
 
     <ProgressBar
-        style="?android:attr/progressBarStyleHorizontal"
         android:id="@+id/install_firm_progress"
+        style="?android:attr/progressBarStyleHorizontal"
         android:layout_width="match_parent"
-        android:progressDrawable="@drawable/progress_horizontal_holo_blue_dark"
         android:layout_height="wrap_content"
+        android:max="1"
+        android:maxHeight="5dp"
         android:minHeight="5dp"
         android:minWidth="0dp"
-        android:maxHeight="5dp"
-        android:max="1"
         android:paddingBottom="10dp"
-        android:progress="1"/>
+        android:progress="1"
+        android:progressDrawable="@drawable/progress_horizontal_holo_blue_dark"/>
 
-    <TextView
-        android:text="@string/firm_location_text"
+    <TableLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textColor="@android:color/white"
-        android:textSize="18sp"
-        android:labelFor="@+id/firm_location"
-        android:paddingEnd="8dp"
-        android:paddingStart="8dp"/>
+        android:padding="5dp"
+        android:shrinkColumns="1">
 
-    <LinearLayout
-        android:orientation="horizontal"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
 
-        <EditText
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:text="@string/firm_location_default"
-            android:ems="10"
-            android:id="@+id/firm_location"
-            android:inputType="text"
-            android:paddingEnd="8dp"
-            android:layout_gravity="center_vertical"
-            android:paddingStart="8dp"
-            android:layout_weight="1"/>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingEnd="5dp"
+                android:text="@string/firmware_location" />
 
-        <Button
-            style="?android:attr/buttonBarButtonStyle"
-            android:text="..."
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/firm_fe_btn"
-            android:layout_gravity="center_vertical"/>
-    </LinearLayout>
+            <TextView
+                android:id="@+id/firmware_location"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@android:color/white" />
+        </TableRow>
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingEnd="5dp"
+                android:text="@string/device_chipset" />
+
+            <TextView
+                android:id="@+id/device_chipset"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@android:color/white" />
+        </TableRow>
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:paddingEnd="5dp"
+                android:text="@string/util_location_text" />
+
+            <Spinner
+                android:id="@+id/util_spinner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1" />
+
+        </TableRow>
+
+    </TableLayout>
 
     <CheckBox
-        android:text="@string/create_backup"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
         android:id="@+id/backup"
-        android:layout_marginBottom="10dp"
-        android:checked="true"/>
-
-    <TextView
-        android:text="@string/util_location_text"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textColor="@android:color/white"
-        android:textSize="18sp"
-        android:labelFor="@+id/util_location"
-        android:paddingEnd="8dp"
-        android:paddingStart="8dp"/>
-
-    <LinearLayout
-        android:orientation="horizontal"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-
-        <EditText
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:text="@string/util_location_default"
-            android:ems="10"
-            android:id="@+id/util_location"
-            android:inputType="text"
-            android:paddingEnd="8dp"
-            android:paddingStart="8dp"
-            android:layout_gravity="center_vertical"
-            android:layout_weight="1"/>
-
-        <Button
-            style="?android:attr/buttonBarButtonStyle"
-            android:text="..."
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/util_fe_btn"
-            android:layout_gravity="center_vertical"/>
-    </LinearLayout>
+        android:checked="true"
+        android:text="@string/create_backup"/>
 
 </LinearLayout>
